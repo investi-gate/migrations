@@ -1,0 +1,92 @@
+# https://taskfile.dev
+
+version: '3'
+
+dotenv: ['.env']
+
+vars:
+  DATABASE_URL: '{{.DATABASE_URL | default "postgres://localhost/investi_gate?sslmode=disable"}}'
+  MIGRATIONS_PATH: './files'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  create:
+    desc: Create a new migration
+    cmds:
+      - migrate create -ext sql -dir {{.MIGRATIONS_PATH}} -seq {{.CLI_ARGS}}
+    preconditions:
+      - sh: test -n "{{.CLI_ARGS}}"
+        msg: "Please provide a migration name: task create -- <migration_name>"
+
+  up:
+    desc: Apply all up migrations
+    cmds:
+      - migrate -path {{.MIGRATIONS_PATH}} -database "{{.DATABASE_URL}}" up
+
+  up-by-one:
+    desc: Apply one up migration
+    cmds:
+      - migrate -path {{.MIGRATIONS_PATH}} -database "{{.DATABASE_URL}}" up 1
+
+  down:
+    desc: Rollback all migrations
+    cmds:
+      - migrate -path {{.MIGRATIONS_PATH}} -database "{{.DATABASE_URL}}" down
+
+  down-by-one:
+    desc: Rollback one migration
+    cmds:
+      - migrate -path {{.MIGRATIONS_PATH}} -database "{{.DATABASE_URL}}" down 1
+
+  force:
+    desc: Force set migration version
+    cmds:
+      - migrate -path {{.MIGRATIONS_PATH}} -database "{{.DATABASE_URL}}" force {{.VERSION}}
+    preconditions:
+      - sh: test -n "{{.VERSION}}"
+        msg: "Please provide a version number: task force VERSION=<version>"
+
+  version:
+    desc: Show current migration version
+    cmds:
+      - migrate -path {{.MIGRATIONS_PATH}} -database "{{.DATABASE_URL}}" version
+
+  drop:
+    desc: Drop entire database schema
+    cmds:
+      - migrate -path {{.MIGRATIONS_PATH}} -database "{{.DATABASE_URL}}" drop -f
+
+  status:
+    desc: Show migration status
+    cmds:
+      - |
+        echo "Current migration version:"
+        migrate -path {{.MIGRATIONS_PATH}} -database "{{.DATABASE_URL}}" version 2>/dev/null || echo "No migrations applied yet"
+        echo ""
+        echo "Available migrations:"
+        ls -la {{.MIGRATIONS_PATH}}/*.sql | head -20
+
+  validate:
+    desc: Validate migration files
+    cmds:
+      - |
+        echo "Checking migration files..."
+        for f in {{.MIGRATIONS_PATH}}/*.up.sql; do
+          base=$(basename "$f" .up.sql)
+          if [ ! -f "{{.MIGRATIONS_PATH}}/${base}.down.sql" ]; then
+            echo "ERROR: Missing down migration for ${base}"
+            exit 1
+          fi
+        done
+        echo "✓ All migrations have matching up/down files"
+
+  reset:
+    desc: Drop and reapply all migrations (DESTRUCTIVE)
+    cmds:
+      - task: drop
+      - task: up
+    prompt: This will destroy all data. Are you sure?
