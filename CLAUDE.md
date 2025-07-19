@@ -1,4 +1,13 @@
-# migrations, database-schema, entity-relation-tracking, postgresql
+# migrations, database-schema, entity-relation-tracking, postgresql, not-null-best-practices
+
+## IMPORTANT: NOT NULL Best Practices
+- **Always prefer NOT NULL over NULL for database columns**
+- Primary key columns (`id`) should ALWAYS be NOT NULL
+- Timestamp columns with defaults (`created_at`, `updated_at`) should be NOT NULL
+- Data/content columns should be NOT NULL with appropriate defaults (e.g., empty string for text)
+- Only use NULL for optional foreign keys or when business logic explicitly requires it
+- When adding new columns, consider if NULL is truly necessary - most times it's not
+- Existing nullable columns should be migrated to NOT NULL where possible
 
 ## Migration Structure
 - Migrations are stored in `files/` directory

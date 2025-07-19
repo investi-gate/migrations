@@ -2,8 +2,6 @@
 
 version: '3'
 
-dotenv: ['.env']
-
 vars:
   DATABASE_URL: '{{.DATABASE_URL | default "postgres://localhost/investi_gate?sslmode=disable"}}'
   MIGRATIONS_PATH: './files'
@@ -17,7 +15,13 @@ tasks:
   create:
     desc: Create a new migration
     cmds:
-      - migrate create -ext sql -dir {{.MIGRATIONS_PATH}} -seq {{.CLI_ARGS}}
+      - |
+        timestamp=$(date +%Y%m%d%H%M%S)
+        touch {{.MIGRATIONS_PATH}}/${timestamp}_{{.CLI_ARGS}}.up.sql
+        touch {{.MIGRATIONS_PATH}}/${timestamp}_{{.CLI_ARGS}}.down.sql
+        echo "Created migration files:"
+        echo "  {{.MIGRATIONS_PATH}}/${timestamp}_{{.CLI_ARGS}}.up.sql"
+        echo "  {{.MIGRATIONS_PATH}}/${timestamp}_{{.CLI_ARGS}}.down.sql"
     preconditions:
       - sh: test -n "{{.CLI_ARGS}}"
         msg: "Please provide a migration name: task create -- <migration_name>"
